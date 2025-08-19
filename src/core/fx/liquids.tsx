@@ -8,12 +8,13 @@ export interface RadiusProfile {
 }
 
 interface LiquidProps {
+    enabled: boolean;
     profile: RadiusProfile;
     fill: number;           // 0..1
     color?: string;
 }
 
-export function Liquid({ profile, fill, color = '#9ad0ff' }: LiquidProps) {
+export function Liquid({ enabled, profile, fill, color = '#9ad0ff' }: LiquidProps) {
     const { mesh, surfaceY, surfaceR } = useMemo(() => {
         const { bottom, height, radii } = profile;
         const clampedFill = THREE.MathUtils.clamp(fill, 0, 1);
@@ -63,6 +64,7 @@ export function Liquid({ profile, fill, color = '#9ad0ff' }: LiquidProps) {
         return geom;
     }, [surfaceY, surfaceR]);
 
+    if (!enabled) return null;
     return (
         <Fragment>
             <mesh geometry={mesh} castShadow receiveShadow>

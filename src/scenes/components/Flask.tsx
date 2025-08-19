@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import * as THREE from 'three';
 import { MeshTransmissionMaterial } from '@react-three/drei';
-import {Liquid} from "../../core/fx/liquids.tsx";
 
 
 type Vec3 = [number, number, number];
@@ -27,28 +26,38 @@ export function Flask({
                           liquidColor = '#9ad0ff',
                           children,
                       }: FlaskProps) {
-    const f = Math.max(0, Math.min(1, fill));
 
     const {
-        glassGeom, neckGeom, bounds
+        glassGeom, rimGeom, bounds
     } = useMemo(() => {
-        const h = 0.26;
         const steps = [
             { y: 0.000, r: 0.00 },
-            { y: 0.004, r: 0.03 },
-            { y: 0.008, r: 0.06 },
-            { y: 0.03, r: 0.075 },
-            { y: 0.08, r: 0.09 },
-            { y: 0.13, r: 0.065 },
-            { y: 0.18, r: 0.045 },
-            { y: 0.23, r: 0.035 },
-            { y: 0.24, r: 0.036 },
-            { y: 0.26, r: 0.038 }
+            { y: 0.002, r: 0.065 },
+            { y: 0.004, r: 0.090 },
+            { y: 0.03, r: 0.095 },
+            { y: 0.17, r: 0.036 },
+            { y: 0.255, r: 0.038 },  // start neck opening
+            { y: 0.257, r: 0.040 },  // flare out (lip outer edge)
+            { y: 0.259, r: 0.038 },  // curve back in
+            { y: 0.260, r: 0.037 }   // inside rim
         ];
 
         const toV2 = (arr: { y: number; r: number }[]) =>
             arr.map(p => new THREE.Vector2(p.r, p.y));
         const glassGeom = new THREE.LatheGeometry(toV2(steps), 48);
+        glassGeom.computeVertexNormals();
+        glassGeom.scale(1, 1, -1);
+
+        const top = steps[steps.length - 1];
+        const rimGeom = new THREE.CylinderGeometry(
+            top.r, // top radius
+            top.r, // bottom radius (same, so it's a straight ring)
+            0.002, // thin height
+            64,    // segments
+            1,
+            true   // open ended (so we don’t get caps)
+        );
+        rimGeom.translate(0, top.y + 0.001, 0);
 
         function interpRadius(points: { y: number; r: number }[], y: number): number {
             for (let i = 0; i < points.length - 1; i++) {
@@ -61,10 +70,11 @@ export function Flask({
             return y < points[0].y ? points[0].r : points[points.length - 1].r;
         }
 
-        const shrink = 0.001;
-        const fullHeight = steps[steps.length - 1].y - steps[1].y;
-        const liquidHeight = fullHeight * f;
+        const shrink = 0.003;
         const bottom = steps[1].y;
+        const fullHeight = steps[steps.length - 1].y - bottom;
+        const liquidTop = bottom + fullHeight * fill;
+        const liquidHeight = liquidTop - bottom;
 
         const samples = 32;
         const radii: number[] = [];
@@ -81,37 +91,36 @@ export function Flask({
         const bounds: LiquidBounds = {
             center: [0, midY, 0],
             radius: maxR * 0.99,
-            height: liquidHeight, // << это теперь реальная высота жидкости
+            height: liquidHeight,
             bottom,
             radii,
         };
 
 
-        const neckGeom = new THREE.CylinderGeometry(0.036, 0.036, 0.001, 32);
-        neckGeom.translate(0, 0.25, 0);
 
-        return { glassGeom, neckGeom, bounds };
+        return { glassGeom, rimGeom, bounds };
     }, [fill]);
 
     const glassMatProps = {
-        thickness: 0.4,
-        transmission: 1,
-        roughness: 0.05,
-        chromaticAberration: 0.03,
-        anisotropy: 0.02,
-        ior: 1.7,
-        distortion: 0.01,
-    } as const;
+        thickness: 0.3,           // a bit thinner walls
+        transmission: 0.95,          // keep it transparent
+        roughness: 0.18,          // more diffuse, less glossy
+        chromaticAberration: 0.005, // very subtle
+        anisotropy: 0.01,
+        ior: 1.5,                 // closer to real glass
+        distortion: 0.002,        // almost none
+        distortionScale: 0.2,     // reduce distortion strength
+        side: THREE.FrontSide,
+    };
 
     return (
         <group position={position}>
             <mesh geometry={glassGeom} castShadow receiveShadow>
-                <MeshTransmissionMaterial {...glassMatProps} />
+                <MeshTransmissionMaterial {...glassMatProps}/>
             </mesh>
-            <mesh geometry={neckGeom}>
-                <MeshTransmissionMaterial {...glassMatProps} />
+            <mesh geometry={rimGeom}>
+                <MeshTransmissionMaterial {...glassMatProps} side={THREE.DoubleSide} />
             </mesh>
-            <Liquid profile={bounds} fill={f} color={liquidColor} />
             {typeof children === 'function'
              ? (children as (b: LiquidBounds) => React.ReactNode)(bounds)
              : children}

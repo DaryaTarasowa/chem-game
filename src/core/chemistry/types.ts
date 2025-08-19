@@ -7,6 +7,7 @@ export type LevelId = string;
 
 // --- Common effect tags your FX layer can listen to ---
 export type EffectTag =
+    | 'liquid'       // adds liquid to the vessel
     | 'bubbles'      // gas bubbles inside a vessel
     | 'foam'         // foamy eruption
     | 'smoke'        // light smoke over the vessel

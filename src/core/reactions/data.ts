@@ -7,7 +7,7 @@ export const reactionDB: ReactionRule[] = [
         outcome: {
             products: ['salt_acetate', 'water'],
             gas: true,
-            effectTags: ['bubbles', 'foam'],
+            effectTags: ['bubbles', 'foam', 'liquid'],
             colorChange: '#ffffff',
             score: 100,
         },

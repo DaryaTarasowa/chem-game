@@ -3,11 +3,16 @@ import {OrbitControls, Environment} from '@react-three/drei';
 import {LabTable, Flask} from './components';
 import {SimpleHUD as HUD} from '../ui/HUD';
 import {useLabStore} from "../state/useLabStore.ts";
-import {Bubbles} from "../core/fx/particles.tsx";
+import {Bubbles, Foam} from "../core/fx/particles.tsx";
 import {Liquid} from "../core/fx/liquids.tsx";
 
 export default function LabScene() {
-    const bubblesOn = useLabStore(s => s.ctx.activeEffects.includes('bubbles'));
+    const effects = useLabStore(s => s.ctx.activeEffects);
+    const bubblesOn = effects.includes('bubbles');
+    const foamOn = effects.includes('foam');
+    const liquidOn = effects.includes('liquid');
+    const liquidColor = useLabStore(s => s.ctx.liquidColor || '#a7d9ff');
+
     return (
         <>
             <Canvas style={{width: '100vw', height: '100vh'}}
@@ -25,17 +30,16 @@ export default function LabScene() {
                             <Bubbles
                                 enabled={bubblesOn}
                                 center={[0, b.center[1], 0]}      // local space
-                                radius={b.radius}                 // fallback
-                                height={b.height}                 // fallback
                                 profile={{bottom: b.bottom, height: b.height, radii: b.radii}}
                                 count={220}
                             />
-                            {/*<Liquid*/}
-                            {/*    fill={0.6}*/}
-                            {/*    profile={{bottom: b.bottom, height: b.height, radii: b.radii}}*/}
-                            {/*/>*/}
+                            <Foam
+                                enabled={foamOn}
+                                center={[0, b.center[1], 0]}      // local space
+                                profile={{bottom: b.bottom, height: b.height, radii: b.radii}}
+                                count={20}/>
+                            <Liquid profile={b} fill={0.65} color={liquidColor} enabled={liquidOn}/>
                         </>
-
                     )}
                 </Flask>
 
